@@ -1,0 +1,52 @@
+# -*- makefile-gmake -*-
+# -----------------------------------------------------------------------
+#
+# Example configuration file for OPAM package distribution.
+#
+# Copyright (C) 2015 Nicolas Berthier
+#
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, either version 3 of the License, or
+# (at your option) any later version.
+#
+# This program is distributed in the hope that it will be useful, but
+# WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+# General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program. If not, see <http://www.gnu.org/licenses/>.
+#
+# -----------------------------------------------------------------------
+
+# Local repository directory specification:
+
+OPAM_REPO_DIR = $(HOME)/repos/opam-repository
+
+# Set this variables to `yes' if the package version-specific
+# specifications are arranged un subdirectories, i.e., in
+# `$(OPAM_REPO_DIR)/packages/<p>/<p>.<version>' for package
+# <p>. Otherwise, such a package sould be specified in
+# `$(OPAM_REPO_DIR)/packages/<p>.<version>'.
+OPAM_REPO_DEEP = yes
+
+# -----------------------------------------------------------------------
+
+# Comment at most one of the following methods:
+
+# github method, for project `p' of user `u':
+OPAM_DIST_METHOD = git
+OPAM_DIST_GIT_ARCH_FROM_REF = https://github.com/u/p/archive/$(1).tar.gz
+
+# --- or ---
+
+# pool method:
+OPAM_DIST_METHOD = pool
+DIST_POOL_DIR = $(HOME)/public_html/pool
+DIST_POOL_URL = http://somewhere/pool
+# This variable has a similar meaning as OPAM_REPO_DEEP, yet for the
+# structure of the pool of distribution archives.
+DIST_POOL_DEEP = yes
+
+# -----------------------------------------------------------------------
