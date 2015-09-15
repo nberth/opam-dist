@@ -123,6 +123,12 @@
 
 # ---
 
+# Default value for OPAM specification directory.
+OPAM_DIR ?= opam
+OPAM_FILES ?= descr opam
+
+# ---
+
 DIST_DIR := $(PKGNAME)-$(VERSION_STR)
 ifeq ($(DIST_POOL_DEEP),yes)
   DIST_NAME := $(PKGNAME)/$(DIST_DIR).tar.gz
@@ -132,8 +138,8 @@ endif
 DIST_POOL_DIR ?= .
 DIST_ARCH := $(DIST_POOL_DIR)/$(DIST_NAME)
 
-.PHONY: opam-dist
-opam-dist: $(DIST_ARCH) force
+.PHONY: dist-arch
+opam-dist-arch: $(DIST_ARCH) force
 $(DIST_ARCH): $(DIST_FILES) $(DIST_DEPS)
 	mkdir -p "$(DIST_DIR)";
 	cp -r $(DIST_FILES) "$(DIST_DIR)";
@@ -164,7 +170,7 @@ ifeq ($(HAS_OPAM_INFO),yes)
 	cp -r $(OPAM_DEPS) "$(OPAM_DEST_DIR)";				\
 	echo " done" >/dev/stderr;
 
-  opam-package-pool: $(DIST_ARCH) opam-package-dir-repo
+  opam-package-pool: opam-dist-arch opam-package-dir-repo
 	echo -n "Computing checksum..." >/dev/stderr;			\
 	md5sum="$$(md5sum "$(DIST_ARCH)" | cut -d ' ' -f 1)";		\
 	echo -ne " done\nGenerating url file..." >/dev/stderr;		\
@@ -181,8 +187,10 @@ ifeq ($(HAS_OPAM_INFO),yes)
 	  echo " found" >/dev/stderr;					\
 	else								\
 	  echo " no found" >/dev/stderr;				\
-	  echo "Reference \`$${ref}' does not seem to exist on remote"	\
-	       "repository. Did you push your changes?" > /dev/stderr;	\
+	  echo "\`$${ref}' does not seem to exist on remote repository"	\
+	       "Did you push your changes?" > /dev/stderr;		\
+	  echo "Hint: Remember to push tags using"			\
+	       "\`git push --tags'." > /dev/stderr;			\
 	  exit 1;							\
 	fi;								\
 	echo -n "Computing checksum..." >/dev/stderr;			\
