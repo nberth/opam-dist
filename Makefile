@@ -21,7 +21,7 @@
 # -----------------------------------------------------------------------
 
 PKGNAME = opam-dist
-VERSION_STR = $(shell git describe --tags --always)
+PKGVERS = $(shell git describe --tags --always)
 include opam-dist.mk
 
 # -----------------------------------------------------------------------

@@ -79,7 +79,7 @@
 # Makefile of your project:
 # 
 # PKGNAME = <OPAM package name>
-# VERSION_STR = <OPAM-compatible version of your package>
+# PKGVERS = <OPAM-compatible version of your package>
 # ifneq ($(OPAM_DIST_DIR),)
 #   OPAM_DIR = <directory containting the OPAM-related files listed	\
 #               bellow>
@@ -90,14 +90,20 @@
 #   -include $(OPAM_DIST_DIR)/opam-dist.mk
 # endif
 #
-# When using the `git' distribution method, it is recommended to use
-# tags to define version numbers, and then generate VERSION_STR using
-# something like:
+# Note that default values for OPAM_DIR and OPAM_FILES are "opam" and
+# "descr opam", respectively.
 #
-# VERSION_STR = $(shell git describe --tags --always)
+# Remarks for the `git' distribution method:
+#
+# - The DIST_FILES is facultative in this case;
+#
+# - It is recommended to use tags to define version numbers, and then
+#   generate PKGVERS using something like:
+#
+#   PKGVERS = $(shell git describe --tags --always)
 # 
-# Also, do not forget to push tags (using `git push --tags') on the
-# remote repository.
+# - Also, do not forget to push tags (using `git push --tags') on the
+#   remote repository before building packages using this method.
 #
 # o Building and Distributing the Package
 # 
@@ -123,29 +129,44 @@
 
 # ---
 
+ifdef VERSION_STR
+  $(warning Variable VERSION_STR is deprecated; use PKGVERS instead)
+  PKGVERS = $(VERSION_STR)
+else
+  ifndef PKGVERS
+    $(error PKGVERS must be defined to the package version)
+  endif
+endif
+
+# ---
+
 # Default value for OPAM specification directory.
 OPAM_DIR ?= opam
 OPAM_FILES ?= descr opam
 
 # ---
 
-DIST_DIR := $(PKGNAME)-$(VERSION_STR)
-ifeq ($(DIST_POOL_DEEP),yes)
-  DIST_NAME := $(PKGNAME)/$(DIST_DIR).tar.gz
-else
-  DIST_NAME := $(DIST_DIR).tar.gz
-endif
-DIST_POOL_DIR ?= .
-DIST_ARCH := $(DIST_POOL_DIR)/$(DIST_NAME)
+ifeq ($(OPAM_DIST_METHOD),pool)
 
-.PHONY: dist-arch
-opam-dist-arch: $(DIST_ARCH) force
-$(DIST_ARCH): $(DIST_FILES) $(DIST_DEPS)
-	mkdir -p "$(DIST_DIR)";
-	cp -r $(DIST_FILES) "$(DIST_DIR)";
+  DIST_ROOT_DIR := $(PKGNAME)-$(PKGVERS)
+  ifeq ($(DIST_POOL_DEEP),yes)
+    DIST_NAME := $(PKGNAME)/$(DIST_ROOT_DIR).tar.gz
+  else
+    DIST_NAME := $(DIST_ROOT_DIR).tar.gz
+  endif
+  DIST_POOL_DIR ?= .
+  DIST_ARCH := $(DIST_POOL_DIR)/$(DIST_NAME)
+
+  .PHONY: dist-arch
+  opam-dist-arch: $(DIST_ARCH) force
+  $(DIST_ARCH): $(DIST_FILES) $(DIST_DEPS)
+	mkdir -p "$(DIST_ROOT_DIR)";
+	cp -r $(DIST_FILES) "$(DIST_ROOT_DIR)";
 	mkdir -p "$(dir $@)";
-	tar cvaf "$@" "$(DIST_DIR)";
-	rm -rf "$(DIST_DIR)";
+	tar cvaf "$@" "$(DIST_ROOT_DIR)";
+	rm -rf "$(DIST_ROOT_DIR)";
+
+endif
 
 # ---
 
@@ -157,7 +178,7 @@ ifeq ($(HAS_OPAM_INFO),yes)
   ifeq ($(OPAM_REPO_DEEP),yes)
     OPAM_PKG_DIR := $(OPAM_PKG_DIR)/$(PKGNAME)
   endif
-  OPAM_DEST_DIR := $(OPAM_PKG_DIR)/$(PKGNAME).$(VERSION_STR)
+  OPAM_DEST_DIR := $(OPAM_PKG_DIR)/$(PKGNAME).$(PKGVERS)
   OPAM_DEPS = $(addprefix $(OPAM_DIR)/, $(OPAM_FILES))
 
   .PHONY: opam-package opam-package-pool
@@ -180,14 +201,14 @@ ifeq ($(HAS_OPAM_INFO),yes)
 	echo " done" >/dev/stderr;
 
   opam-package-git: opam-package-dir-repo
-	@ref="$(VERSION_STR)";						\
+	@ref="$(PKGVERS)";						\
 	arch="$(call OPAM_DIST_GIT_ARCH_FROM_REF,$${ref})";		\
 	echo -n "Testing archive \`$${arch}'..." >/dev/stderr;		\
 	if wget --spider -q "$${arch}"; then				\
 	  echo " found" >/dev/stderr;					\
 	else								\
 	  echo " no found" >/dev/stderr;				\
-	  echo "\`$${ref}' does not seem to exist on remote repository"	\
+	  echo "\`$${ref}' does not seem to exist on remote repository."\
 	       "Did you push your changes?" > /dev/stderr;		\
 	  echo "Hint: Remember to push tags using"			\
 	       "\`git push --tags'." > /dev/stderr;			\
