@@ -2,7 +2,7 @@
 # ----------------------------------------------------------------------
 #
 # Makefile utilities to build and distribute opam packages either
-# directly (`pool' method) or web-hosted git.
+# directly (`pool' or `url' methods) or web-hosted git.
 #
 # Copyright (C) 2015 Nicolas Berthier
 #
@@ -45,10 +45,10 @@
 # two following variables, common to all distribution methods:
 #
 # OPAM_REPO_DIR = <path of OPAM repository directory>
-# OPAM_DIST_METHOD = { pool | git }
+# OPAM_DIST_METHOD = { pool | url | git }
 #
-# Two methods are currently available for distributing the archives:
-# `pool' or `git'.
+# Three methods are currently available for distributing the archives:
+# `pool', `url' or `git'.
 #
 # - Selecting the `pool' distribution method means that the
 #   distributed archives will be generated into a given directory that
@@ -59,6 +59,12 @@
 #                    put>
 #   DIST_POOL_URL = <URL of the directory pointed to by the above	\
 #                    variable>
+#
+# - The `url' distribution method is similar to the `pool' except that
+#   the distribution archive is already available on the
+#   Internet. Define the OPAM_DIST_URL variable to use it:
+#
+#   OPAM_DIST_URL = <URL of the archive>
 #
 # - Selecting the `git' distribution method means that the released
 #   archives shall be retrieved directly form a git repository
@@ -191,14 +197,35 @@ ifeq ($(HAS_OPAM_INFO),yes)
 	cp -r $(OPAM_DEPS) "$(OPAM_DEST_DIR)";				\
 	echo " done" >/dev/stderr;
 
-  opam-package-pool: opam-dist-arch opam-package-dir-repo
+  define mk_url =
+	echo -n "Generating url file..." >/dev/stderr;			\
+	exec 1>"$(OPAM_DEST_DIR)/url";					\
+	echo "archive: \"$${arch}\"";					\
+	echo "checksum: \"$${md5sum}\"";				\
+	echo " done" >/dev/stderr
+  endef
+
+  define mk_url_from_local_arch =
 	echo -n "Computing checksum..." >/dev/stderr;			\
 	md5sum="$$(md5sum "$(DIST_ARCH)" | cut -d ' ' -f 1)";		\
-	echo -ne " done\nGenerating url file..." >/dev/stderr;		\
-	exec 1>"$(OPAM_DEST_DIR)/url";					\
-	echo "archive: \"$(DIST_POOL_URL)/$(DIST_NAME)\"";		\
-	echo "checksum: \"$${md5sum}\"";				\
-	echo " done" >/dev/stderr;
+	echo " done" >/dev/stderr;					\
+	$(mk_url)
+  endef
+
+  define mk_url_from_remote_arch =
+	echo -n "Computing checksum..." >/dev/stderr;			\
+	md5sum="$$(wget -O - -q "$${arch}" | md5sum | cut -d ' ' -f 1)";\
+	echo " done" >/dev/stderr;					\
+	$(mk_url)
+  endef
+
+  opam-package-pool: opam-dist-arch opam-package-dir-repo
+	arch="$(DIST_POOL_URL)/$(DIST_NAME)";				\
+	$(mk_url_from_local_arch);
+
+  opam-package-url: opam-package-dir-repo
+	@arch="$(OPAM_DIST_URL)";					\
+	$(mk_url_from_remote_arch);
 
   opam-package-git: opam-package-dir-repo
 	@ref="$(PKGVERS)";						\
@@ -214,13 +241,7 @@ ifeq ($(HAS_OPAM_INFO),yes)
 	       "\`git push --tags'." > /dev/stderr;			\
 	  exit 1;							\
 	fi;								\
-	echo -n "Computing checksum..." >/dev/stderr;			\
-	md5sum="$$(wget -O - -q "$${arch}" | md5sum | cut -d ' ' -f 1)";\
-	echo -ne " done\nGenerating url file..." >/dev/stderr;		\
-	exec 1>"$(OPAM_DEST_DIR)/url";					\
-	echo "archive: \"$${arch}\"";					\
-	echo "checksum: \"$${md5sum}\"";				\
-	echo " done" >/dev/stderr;
+	$(mk_url_from_remote_arch);
 
   .PHONY: opam-package-clean
   opam-package-clean: force
