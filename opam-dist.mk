@@ -170,6 +170,7 @@ ifeq ($(OPAM_DIST_METHOD),pool)
 	cp -r $(DIST_FILES) "$(DIST_ROOT_DIR)";
 	mkdir -p "$(dir $@)";
 	tar cvaf "$@" "$(DIST_ROOT_DIR)";
+	chmod a+r "$@";
 	rm -rf "$(DIST_ROOT_DIR)";
 
 endif
@@ -192,30 +193,32 @@ ifeq ($(HAS_OPAM_INFO),yes)
 
   opam-package-dir-repo: $(OPAM_DEPS)
 	@test -d "$(OPAM_DEST_DIR)" && rm -rf "$(OPAM_DEST_DIR)" || true;
-	@echo -n "Creating \`$(OPAM_DEST_DIR)'..." >/dev/stderr;	\
+	@echo -n "Creating \`$(OPAM_DEST_DIR)'..." 1>&2;		\
 	mkdir -p "$(OPAM_DEST_DIR)";					\
 	cp -r $(OPAM_DEPS) "$(OPAM_DEST_DIR)";				\
-	echo " done" >/dev/stderr;
+	chmod a+r -R "$(OPAM_DEST_DIR)";				\
+	echo " done" 1>&2;
 
-  define mk_url =
-	echo -n "Generating url file..." >/dev/stderr;			\
+  define mk_url
+	echo -n "Generating url file..." 1>&2;				\
 	exec 1>"$(OPAM_DEST_DIR)/url";					\
 	echo "archive: \"$${arch}\"";					\
 	echo "checksum: \"$${md5sum}\"";				\
-	echo " done" >/dev/stderr
+	chmod a+r "$(OPAM_DEST_DIR)/url";				\
+	echo " done" 1>&2
   endef
 
-  define mk_url_from_local_arch =
-	echo -n "Computing checksum..." >/dev/stderr;			\
+  define mk_url_from_local_arch
+	echo -n "Computing checksum..." 1>&2;				\
 	md5sum="$$(md5sum "$(DIST_ARCH)" | cut -d ' ' -f 1)";		\
-	echo " done" >/dev/stderr;					\
+	echo " done" 1>&2;						\
 	$(mk_url)
   endef
 
-  define mk_url_from_remote_arch =
-	echo -n "Computing checksum..." >/dev/stderr;			\
+  define mk_url_from_remote_arch
+	echo -n "Computing checksum..." 1>&2;				\
 	md5sum="$$(wget -O - -q "$${arch}" | md5sum | cut -d ' ' -f 1)";\
-	echo " done" >/dev/stderr;					\
+	echo " done" 1>&2;						\
 	$(mk_url)
   endef
 
@@ -230,15 +233,15 @@ ifeq ($(HAS_OPAM_INFO),yes)
   opam-package-git: opam-package-dir-repo
 	@ref="$(PKGVERS)";						\
 	arch="$(call OPAM_DIST_GIT_ARCH_FROM_REF,$${ref})";		\
-	echo -n "Testing archive \`$${arch}'..." >/dev/stderr;		\
+	echo -n "Testing archive \`$${arch}'..." 1>&2;			\
 	if wget --spider -q "$${arch}"; then				\
-	  echo " found" >/dev/stderr;					\
+	  echo " found" 1>&2;						\
 	else								\
-	  echo " no found" >/dev/stderr;				\
+	  echo " not found" 1>&2;					\
 	  echo "\`$${ref}' does not seem to exist on remote repository."\
-	       "Did you push your changes?" > /dev/stderr;		\
+	       "Did you push your changes?" 1>&2;			\
 	  echo "Hint: Remember to push tags using"			\
-	       "\`git push --tags'." > /dev/stderr;			\
+	       "\`git push --tags'." 1>&2;				\
 	  exit 1;							\
 	fi;								\
 	$(mk_url_from_remote_arch);
