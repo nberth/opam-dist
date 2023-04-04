@@ -148,7 +148,12 @@ endif
 
 # Default value for OPAM specification directory.
 OPAM_DIR ?= opam
-OPAM_FILES ?= descr opam
+OPAM_FILE_VERSION ?= 2
+ifeq ($(OPAM_FILE_VERSION),1)
+  OPAM_FILES ?= descr opam
+else
+  OPAM_FILES ?= opam
+endif
 
 # ---
 
@@ -200,12 +205,22 @@ ifeq ($(HAS_OPAM_INFO),yes)
 	echo " done" 1>&2;
 
   define mk_url
+    ifdef ($(OPAM_FILE_VERSION),1)
 	echo -n "Generating url file..." 1>&2;				\
 	exec 1>"$(OPAM_DEST_DIR)/url";					\
 	echo "archive: \"$${arch}\"";					\
 	echo "checksum: \"$${md5sum}\"";				\
 	chmod a+r "$(OPAM_DEST_DIR)/url";				\
 	echo " done" 1>&2
+    else
+	echo -n "Appending url section in opam file..." 1>&2;		\
+	exec 1>>"$(OPAM_DEST_DIR)/opam";				\
+	echo "url {";							\
+	echo "  src: \"$${arch}\"";					\
+	echo "  checksum: \"md5=$${md5sum}\"";				\
+	echo "}";							\
+	echo " done" 1>&2
+    endif
   endef
 
   define mk_url_from_local_arch
