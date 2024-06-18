@@ -204,36 +204,38 @@ ifeq ($(HAS_OPAM_INFO),yes)
 	chmod a+r -R "$(OPAM_DEST_DIR)";				\
 	echo " done" 1>&2;
 
-  define mk_url
-    ifdef ($(OPAM_FILE_VERSION),1)
+  ifeq ($(OPAM_FILE_VERSION),1)
+    define mk_url
 	echo -n "Generating url file..." 1>&2;				\
 	exec 1>"$(OPAM_DEST_DIR)/url";					\
 	echo "archive: \"$${arch}\"";					\
-	echo "checksum: \"$${md5sum}\"";				\
+	echo "checksum: \"$${sha512sum}\"";				\
 	chmod a+r "$(OPAM_DEST_DIR)/url";				\
 	echo " done" 1>&2
-    else
+    endef
+  else
+    define mk_url
 	echo -n "Appending url section in opam file..." 1>&2;		\
 	exec 1>>"$(OPAM_DEST_DIR)/opam";				\
 	echo "url {";							\
 	echo "  src: \"$${arch}\"";					\
-	echo "  checksum: \"md5=$${md5sum}\"";				\
+	echo "  checksum: \"sha512=$${sha512sum}\"";			\
 	echo "}";							\
 	echo " done" 1>&2
-    endif
-  endef
+    endef
+  endif
 
   define mk_url_from_local_arch
 	echo -n "Computing checksum..." 1>&2;				\
-	md5sum="$$(md5sum "$(DIST_ARCH)" | cut -d ' ' -f 1)";		\
+	sha512sum="$$(sha512sum "$(DIST_ARCH)" | cut -d ' ' -f 1)";	\
 	echo " done" 1>&2;						\
 	$(mk_url)
   endef
 
   define mk_url_from_remote_arch
-	echo -n "Computing checksum..." 1>&2;				\
-	md5sum="$$(wget -O - -q "$${arch}" | md5sum | cut -d ' ' -f 1)";\
-	echo " done" 1>&2;						\
+	echo -n "Computing checksum..." 1>&2;					\
+	sha512sum="$$(wget -O - -q "$${arch}" | sha512sum | cut -d ' ' -f 1)";	\
+	echo " done" 1>&2;							\
 	$(mk_url)
   endef
 
